@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CriticalBFD — Brantford infrastructure, watched in the open</title>
+<meta name="description" content="Independent monitoring of Brantford's critical infrastructure: the Grand River, power, rail, water and roads. Part of the CriticalTO network.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EEF2F1; --panel:#FFFFFF; --ink:#12303B; --muted:#4E6770; --rule:#C9D4D3;
+  --river:#2A6F8E; --river-soft:#D6E6EC; --amber:#B97F00; --flood:#B3261E; --ok:#2E7D4F;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Barlow","Helvetica Neue",Arial,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0E1C22; --panel:#14262E; --ink:#E3ECEC; --muted:#9DB2B8; --rule:#2A4049;
+    --river:#6FB3D2; --river-soft:#1C3A47; --amber:#E3B341; --flood:#F07167; --ok:#6CC08B;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1C22; --panel:#14262E; --ink:#E3ECEC; --muted:#9DB2B8; --rule:#2A4049;
+  --river:#6FB3D2; --river-soft:#1C3A47; --amber:#E3B341; --flood:#F07167; --ok:#6CC08B;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 1.0625rem/1.55 var(--body);
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+a{color:var(--river);text-underline-offset:.18em}
+a:focus-visible,button:focus-visible{outline:3px solid var(--amber);outline-offset:2px;border-radius:2px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 1.25rem}
+img,svg{max-width:100%}
+
+/* Header */
+header.site{border-bottom:1px solid var(--rule)}
+header.site .wrap{display:flex;align-items:center;justify-content:space-between;gap:1rem;min-height:64px;flex-wrap:wrap}
+.mark{font:700 1.6rem/1 var(--display);letter-spacing:.01em;color:var(--ink);text-decoration:none}
+.mark span{color:var(--river)}
+nav ul{list-style:none;display:flex;gap:1.25rem;margin:0;padding:0;flex-wrap:wrap}
+nav a{color:var(--ink);text-decoration:none;font-weight:500}
+nav a:hover{color:var(--river);text-decoration:underline}
+
+/* Hero */
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:3rem;padding:3.5rem 0 3rem;align-items:start}
+.hero h1{font:700 clamp(2.6rem,6vw,4.4rem)/.95 var(--display);margin:0 0 1.25rem;letter-spacing:-.005em}
+.hero .dek{font-size:1.2rem;max-width:34ch;color:var(--muted);margin:0 0 1.75rem}
+.reading{border-left:4px solid var(--river);padding:.25rem 0 .25rem 1rem;margin:0 0 1.5rem}
+.reading .flow{font:600 3.2rem/1 var(--display)}
+.reading .flow small{font-size:1.2rem;font-weight:500;color:var(--muted);margin-left:.3rem}
+.reading .state{font-weight:600;margin:.4rem 0 .15rem}
+.reading .meta{font-size:.9rem;color:var(--muted)}
+.hero .note{font-size:.9rem;color:var(--muted);max-width:44ch}
+
+/* Gauge ladder */
+.gauge{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:1.25rem 1rem 1rem}
+.gauge h2{font:600 1.35rem/1.1 var(--display);margin:0 0 .25rem}
+.gauge p{margin:0 0 .75rem;font-size:.9rem;color:var(--muted)}
+#ladder{width:100%;height:auto;display:block}
+#ladder text{font-family:var(--body);fill:var(--ink)}
+#ladder .lbl{font-size:12.5px}
+#ladder .val{font-size:12.5px;font-weight:600}
+#ladder .tick{stroke:var(--rule)}
+#ladder .th{stroke:var(--muted);stroke-dasharray:3 3}
+#ladder .th.hot{stroke:var(--flood);stroke-dasharray:none}
+
+/* Sections */
+section.block{padding:2.75rem 0;border-top:1px solid var(--rule)}
+section.block h2{font:700 2rem/1 var(--display);margin:0 0 .5rem}
+section.block .lede{color:var(--muted);max-width:62ch;margin:0 0 1.75rem}
+
+/* Monitor board */
+.board{width:100%;border-collapse:collapse}
+.board-scroll{overflow-x:auto}
+.board th{text-align:left;font-weight:600;font-size:.9rem;color:var(--muted);padding:.5rem .75rem;border-bottom:2px solid var(--ink)}
+.board td{padding:.9rem .75rem;border-bottom:1px solid var(--rule);vertical-align:top}
+.board td:first-child{font:600 1.2rem/1.2 var(--display);min-width:12rem}
+.board td:first-child a{color:var(--ink)}
+.board .src{font-size:.9rem;color:var(--muted)}
+.pill{display:inline-block;font-size:.82rem;font-weight:600;padding:.12rem .55rem;border-radius:999px;white-space:nowrap;border:1px solid currentColor}
+.pill.live{color:var(--ok)} .pill.stale{color:var(--amber)} .pill.build{color:var(--muted)} .pill.down{color:var(--flood)}
+
+/* 2018 */
+.history{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2rem}
+.history div{border-top:3px solid var(--river);padding-top:.75rem}
+.history strong{display:block;font:700 2.2rem/1 var(--display);margin-bottom:.35rem}
+.history p{margin:0;color:var(--muted);font-size:.95rem}
+
+/* Brief + sources */
+.brief{display:grid;grid-template-columns:1fr 1fr;gap:2.5rem}
+.brief ul{padding-left:1.1rem;margin:.5rem 0 0}
+.brief li{margin-bottom:.4rem}
+.signup{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}
+.signup input{flex:1 1 14rem;font:inherit;padding:.6rem .75rem;border:1px solid var(--rule);border-radius:4px;background:var(--panel);color:var(--ink)}
+.signup button{font:600 1rem var(--body);padding:.6rem 1.1rem;border:0;border-radius:4px;background:var(--river);color:#fff;cursor:pointer}
+
+footer{border-top:1px solid var(--rule);padding:2rem 0 3rem;font-size:.88rem;color:var(--muted)}
+footer p{max-width:80ch;margin:.4rem 0}
+
+@media (max-width:860px){
+  .hero{grid-template-columns:1fr;gap:2rem;padding-top:2.5rem}
+  .history,.brief{grid-template-columns:1fr;gap:1.5rem}
+}
+@media (prefers-reduced-motion:no-preference){
+  #marker{transition:transform .9s cubic-bezier(.2,.7,.2,1)}
+}
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="mark" href="/">Critical<span>BFD</span></a>
+    <nav aria-label="Main">
+      <ul>
+        <li><a href="#river">Grand River</a></li>
+        <li><a href="#monitors">Monitors</a></li>
+        <li><a href="#brief">Weekly brief</a></li>
+        <li><a href="https://criticalto.ca">CriticalTO</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- HERO: the river is the most characteristic risk in Brantford -->
+  <div class="hero" id="river">
+    <div>
+      <h1>Brantford's infrastructure, watched in the open.</h1>
+      <p class="dek">Independent monitoring of the river, power, rail, water and roads that keep Brantford and Brant County running.</p>
+
+      <div class="reading" aria-live="polite">
+        <div class="flow" id="flow">—<small>m³/s</small></div>
+        <div class="state" id="state">Loading the Grand River at Brantford…</div>
+        <div class="meta" id="meta">Water Survey of Canada gauge 02GB001</div>
+      </div>
+
+      <p class="note">Readings are provisional and update hourly. For flood warnings, follow the <a href="https://www.grandriver.ca">Grand River Conservation Authority</a> and the <a href="https://www.brantford.ca">City of Brantford</a>.</p>
+    </div>
+
+    <figure class="gauge" aria-labelledby="gauge-title">
+      <h2 id="gauge-title">Grand River at Brantford</h2>
+      <p>Current flow against GRCA's critical-flow markers for this gauge. Log scale.</p>
+      <svg id="ladder" viewBox="0 0 420 460" role="img" aria-label="Flow gauge showing current Grand River flow at Brantford against flood thresholds"></svg>
+    </figure>
+  </div>
+
+  <!-- MONITOR BOARD -->
+  <section class="block" id="monitors">
+    <h2>Monitors</h2>
+    <p class="lede">Each row reads its own status file and shows how fresh the data is. Rows marked in development are scoped but not yet publishing.</p>
+    <div class="board-scroll">
+      <table class="board">
+        <thead><tr><th scope="col">Monitor</th><th scope="col">What it tracks</th><th scope="col">Source</th><th scope="col">Status</th></tr></thead>
+        <tbody>
+          <tr data-status-url="">
+            <td><a href="#river">Grand River Watch</a></td>
+            <td>Hourly flow and level at Brantford, compared to flood thresholds.</td>
+            <td class="src">Water Survey of Canada, GRCA</td>
+            <td><span class="pill" id="river-pill">Checking</span></td>
+          </tr>
+          <tr data-status-url="https://data.criticalbfd.ca/power/status.json">
+            <td>PowerWatch Brantford</td>
+            <td>Outages across GrandBridge Energy's Brantford and Brant County service area.</td>
+            <td class="src">GrandBridge Energy, Hydro One</td>
+            <td><span class="pill build">In development</span></td>
+          </tr>
+          <tr data-status-url="https://data.criticalbfd.ca/rail/status.json">
+            <td>RailWatch Brantford</td>
+            <td>Rail traffic and dangerous goods movements through the city, sliced from RailWatch.</td>
+            <td class="src">RailWatch, Transport Canada</td>
+            <td><span class="pill build">In development</span></td>
+          </tr>
+          <tr data-status-url="https://data.criticalbfd.ca/water/status.json">
+            <td>WaterWatch Brantford</td>
+            <td>Drinking water and wastewater notices, and river conditions at the intake.</td>
+            <td class="src">City of Brantford, WaterWatch</td>
+            <td><span class="pill build">In development</span></td>
+          </tr>
+          <tr data-status-url="https://data.criticalbfd.ca/roads/status.json">
+            <td>Road closures</td>
+            <td>City road construction and closures, including flood-prone crossings.</td>
+            <td class="src">City of Brantford Open Data</td>
+            <td><span class="pill build">In development</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- WHY THE RIVER -->
+  <section class="block">
+    <h2>Why the river comes first</h2>
+    <p class="lede">In February 2018 an ice jam in the Tutela Heights area backed the Grand River up through the city. It is the clearest recent case of a single system failure cascading across roads, homes and services in Brantford.</p>
+    <div class="history">
+      <div><strong>3,000 m³/s</strong><p>Peak flow on February 21, 2018, faster than the historic 1974 flood.</p></div>
+      <div><strong>2,200 homes</strong><p>Under evacuation order as water rose behind the ice jam.</p></div>
+      <div><strong>400 m³/s</strong><p>The flow at which the river leaves its banks and low-lying areas flood.</p></div>
+    </div>
+  </section>
+
+  <!-- BRIEF -->
+  <section class="block" id="brief">
+    <div class="brief">
+      <div>
+        <h2>Weekly brief</h2>
+        <p class="lede">A short Monday read on what moved in Brantford's infrastructure last week and what to watch next.</p>
+        <!-- Replace YOUR_USERNAME with your Buttondown username. Double opt-in is set in Buttondown. -->
+        <form class="signup" action="https://buttondown.com/api/emails/embed-subscribe/YOUR_USERNAME" method="post" target="_blank">
+          <label for="email" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Email address</label>
+          <input id="email" type="email" name="email" placeholder="you@example.ca" autocomplete="email" required>
+          <input type="hidden" name="tag" value="criticalbfd">
+          <button type="submit">Subscribe</button>
+        </form>
+        <p class="src" style="margin-top:.6rem">You'll get a confirmation email first. Unsubscribe any time. <a href="/privacy.html">Privacy</a></p>
+      </div>
+      <div>
+        <h2>Sources</h2>
+        <ul>
+          <li><a href="https://wateroffice.ec.gc.ca/report/real_time_e.html?stn=02GB001">Water Survey of Canada, station 02GB001</a></li>
+          <li><a href="https://www.grandriver.ca/our-watershed/river-data/river-and-stream-flows/lower-grand-flows/">GRCA Lower Grand critical flows</a></li>
+          <li><a href="https://data-brantford.opendata.arcgis.com">City of Brantford Open Data</a></li>
+          <li><a href="https://www.grandbridgeenergy.com">GrandBridge Energy</a></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><strong>CriticalBFD</strong> is an independent civic-technology project, part of the <a href="https://criticalto.ca">CriticalTO</a> network. It is not affiliated with the City of Brantford, the County of Brant, GRCA or GrandBridge Energy.</p>
+    <p>River data is provisional and supplied by Water Survey of Canada and the Grand River Conservation Authority. Do not use it for decisions about personal or public safety. In an emergency, call 911.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  // GRCA critical-flow markers for the Brantford gauge (m³/s)
+  const TH = [
+    {v:20,   t:"Normal summer low flow"},
+    {v:400,  t:"Water at banks, low-lying areas flood", hot:true},
+    {v:555,  t:"Fourth Line floods (Six Nations)"},
+    {v:600,  t:"Gilkison St. closed", hot:true},
+    {v:1800, t:"1974 flood"},
+    {v:3000, t:"Feb 2018 peak"},
+    {v:3400, t:"Dike capacity", hot:true}
+  ];
+  const MIN=10, MAX=5000, TOP=20, BOT=440, X0=96, BAR=26;
+  const y = v => BOT - (Math.log10(v)-Math.log10(MIN)) / (Math.log10(MAX)-Math.log10(MIN)) * (BOT-TOP);
+  const svg = document.getElementById('ladder');
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (n,a) => { const e=document.createElementNS(NS,n); for(const k in a) e.setAttribute(k,a[k]); return e; };
+
+  // staff gauge body
+  svg.appendChild(el('rect',{x:X0,y:TOP,width:BAR,height:BOT-TOP,fill:'var(--river-soft)',rx:3}));
+  [10,100,1000].forEach(v=>{
+    svg.appendChild(el('line',{x1:X0-8,x2:X0,y1:y(v),y2:y(v),class:'tick'}));
+    const t=el('text',{x:X0-12,y:y(v)+4,'text-anchor':'end',class:'lbl'}); t.textContent=v.toLocaleString('en-CA'); svg.appendChild(t);
+  });
+  // threshold lines, labels nudged apart so close values don't overlap
+  let lastY = -99;
+  TH.forEach(th=>{
+    const ty=y(th.v);
+    svg.appendChild(el('line',{x1:X0,x2:X0+BAR+14,y1:ty,y2:ty,class:'th'+(th.hot?' hot':'')}));
+    let ly = ty+4; if (Math.abs(lastY-ly)<16) ly = lastY-16; lastY = ly;
+    const t=el('text',{x:X0+BAR+20,y:ly,class:'lbl'});
+    t.textContent = th.v.toLocaleString('en-CA')+'  '+th.t; svg.appendChild(t);
+  });
+  // current-flow marker
+  const g = el('g',{id:'marker',transform:'translate(0,'+BOT+')',opacity:0});
+  g.appendChild(el('rect',{x:X0,y:0,width:BAR,height:4,fill:'var(--river)'}));
+  g.appendChild(el('path',{d:'M'+(X0-2)+' 2 l-12 -8 v16 z',fill:'var(--river)'}));
+  const gv=el('text',{x:X0-18,y:-10,'text-anchor':'end',class:'val'}); gv.textContent='Now';
+  g.appendChild(gv); svg.appendChild(g);
+
+  function stateFor(q){
+    if (q>=3400) return ['Above dike capacity','down'];
+    if (q>=1800) return ['Major flood range','down'];
+    if (q>=600)  return ['Gilkison St. closure threshold reached','down'];
+    if (q>=400)  return ['Out of banks, low-lying areas flooding','stale'];
+    return ['Within banks','live'];
+  }
+
+  const flowEl=document.getElementById('flow'), stEl=document.getElementById('state'),
+        metaEl=document.getElementById('meta'), pill=document.getElementById('river-pill');
+
+  // Water Survey of Canada real-time hydrometric API (OGC API Features)
+  const URL='https://api.weather.gc.ca/collections/hydrometric-realtime/items?f=json&STATION_NUMBER=02GB001&sortby=-DATETIME&limit=1';
+  fetch(URL).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); }).then(j=>{
+    const p = j.features && j.features[0] && j.features[0].properties;
+    if(!p || p.DISCHARGE==null) throw new Error('no discharge');
+    const q = Number(p.DISCHARGE), when = new Date(p.DATETIME);
+    const ageH = (Date.now()-when)/36e5;
+    const [label, cls] = stateFor(q);
+    flowEl.innerHTML = q.toLocaleString('en-CA',{maximumFractionDigits:q<100?1:0})+'<small>m³/s</small>';
+    stEl.textContent = label;
+    metaEl.textContent = 'Gauge 02GB001, '+when.toLocaleString('en-CA',{dateStyle:'medium',timeStyle:'short'})
+      + (p.LEVEL!=null ? ', level '+Number(p.LEVEL).toFixed(2)+' m' : '');
+    const clamped = Math.min(Math.max(q,MIN),MAX);
+    g.setAttribute('opacity',1);
+    requestAnimationFrame(()=>g.setAttribute('transform','translate(0,'+(y(clamped)-2)+')'));
+    gv.textContent = Math.round(q).toLocaleString('en-CA');
+    if (ageH>3){ pill.className='pill stale'; pill.textContent='Updated '+Math.round(ageH)+' h ago'; }
+    else { pill.className='pill live'; pill.textContent='Live'; }
+  }).catch(()=>{
+    flowEl.innerHTML='—<small>m³/s</small>';
+    stEl.textContent='Live reading unavailable right now.';
+    metaEl.innerHTML='Check the <a href="https://grandriver.ca/our-watershed/river-data/river-and-stream-flows/flow-summary">GRCA flow summary</a> for the latest Brantford reading.';
+    pill.className='pill down'; pill.textContent='Feed unavailable';
+  });
+
+  // Freshness board: rows with a status URL read {updated: ISO8601} and show age
+  document.querySelectorAll('tr[data-status-url]').forEach(row=>{
+    const url=row.dataset.statusUrl; if(!url) return;
+    const p=row.querySelector('.pill');
+    fetch(url,{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()).then(s=>{
+      const h=(Date.now()-new Date(s.updated))/36e5;
+      p.className='pill '+(h<26?'live':'stale');
+      p.textContent = h<26 ? 'Updated '+(h<1?'<1':Math.round(h))+' h ago' : 'Stale, '+Math.round(h/24)+' d';
+    }).catch(()=>{ /* keep "In development" until the feed exists */ });
+  });
+})();
+</script>
+</body>
+</html>
