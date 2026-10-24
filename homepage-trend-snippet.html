@@ -1,0 +1,50 @@
+<!-- RIVER TREND: 7-day chart from /river/history.json -->
+<section class="block" id="river-trend">
+  <h2>Grand River, last 7 days</h2>
+  <p class="rt-meta" id="rt-meta">Loading the hourly log…</p>
+  <svg id="rt-chart" viewBox="0 0 640 200" role="img" aria-labelledby="rt-title rt-desc" preserveAspectRatio="none">
+    <title id="rt-title">Grand River flow at Brantford, last 7 days</title>
+    <desc id="rt-desc">Hourly flow readings from Water Survey of Canada gauge 02GB001.</desc>
+  </svg>
+  <p class="rt-src">Hourly readings from Water Survey of Canada gauge 02GB001, logged by CriticalBFD. Provisional data. <a href="/river/history.json">Raw data</a></p>
+  <style>
+    #river-trend svg{width:100%;height:200px;display:block;overflow:visible}
+    #river-trend .rt-meta{margin:.2rem 0 .8rem}
+    #river-trend .rt-src{font-size:.85rem;opacity:.75;margin-top:.6rem}
+    #river-trend .rt-axis{font-size:11px;fill:currentColor;opacity:.65}
+    #river-trend .rt-grid{stroke:currentColor;opacity:.12}
+    #river-trend .rt-ref{stroke:#c0392b;stroke-dasharray:4 4;opacity:.8}
+  </style>
+  <script>
+  (function(){
+    var svg=document.getElementById('rt-chart'), meta=document.getElementById('rt-meta');
+    var NS='http://www.w3.org/2000/svg', W=640, H=200, L=44, R=8, T=10, B=24;
+    function el(n,a){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);return e;}
+    fetch('/river/history.json',{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(d){
+      var since=Date.now()-7*864e5;
+      var pts=d.readings.filter(function(p){return Date.parse(p.time)>=since&&p.flow_m3s!=null;});
+      if(pts.length<2){meta.textContent='The hourly log has just started. The trend will fill in over the next few days.';return;}
+      var xs=pts.map(function(p){return Date.parse(p.time);}), ys=pts.map(function(p){return p.flow_m3s;});
+      var x0=xs[0], x1=xs[xs.length-1], ymax=Math.max.apply(null,ys), ymin=Math.min.apply(null,ys);
+      var showBanks=ymax>200, raw=Math.max(ymax*1.15, showBanks?440:0, 1);
+      var mag=Math.pow(10,Math.floor(Math.log10(raw))), top=[1,2,2.5,5,10].map(function(m){return m*mag;}).filter(function(v){return v>=raw;})[0];
+      function X(t){return L+(t-x0)/(x1-x0||1)*(W-L-R);} function Y(v){return T+(1-v/top)*(H-T-B);}
+      [0,.5,1].forEach(function(f){var v=top*f, y=Y(v);
+        svg.appendChild(el('line',{x1:L,x2:W-R,y1:y,y2:y,'class':'rt-grid'}));
+        var t=el('text',{x:L-6,y:y+4,'text-anchor':'end','class':'rt-axis'}); t.textContent=Math.round(v); svg.appendChild(t);});
+      if(showBanks){var yb=Y(400); svg.appendChild(el('line',{x1:L,x2:W-R,y1:yb,y2:yb,'class':'rt-ref'}));
+        var tb=el('text',{x:L+6,y:yb-5,'text-anchor':'start','class':'rt-axis'}); tb.textContent='400: water at the banks'; svg.appendChild(tb);}
+      var line='', area='M'+X(xs[0])+' '+Y(0);
+      pts.forEach(function(p,i){var c=X(xs[i])+' '+Y(ys[i]); line+=(i?'L':'M')+c; area+='L'+c;});
+      area+='L'+X(x1)+' '+Y(0)+'Z';
+      var col='var(--river, #2a7ab0)';
+      svg.appendChild(el('path',{d:area,fill:col,opacity:.12}));
+      svg.appendChild(el('path',{d:line,fill:'none',stroke:col,'stroke-width':2,'vector-effect':'non-scaling-stroke'}));
+      [x0,x1].forEach(function(t,i){var tx=el('text',{x:i?W-R:L,y:H-6,'text-anchor':i?'end':'start','class':'rt-axis'});
+        tx.textContent=new Date(t).toLocaleDateString('en-CA',{month:'short',day:'numeric'}); svg.appendChild(tx);});
+      function f(v){return v.toLocaleString('en-CA',{maximumFractionDigits:v<100?1:0});}
+      meta.textContent='Now '+f(ys[ys.length-1])+' m³/s. Seven-day range '+f(ymin)+' to '+f(ymax)+' m³/s.';
+    }).catch(function(){meta.textContent='The hourly log isn’t available right now.';});
+  })();
+  </script>
+</section>
